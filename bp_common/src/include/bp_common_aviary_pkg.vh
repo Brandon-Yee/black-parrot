@@ -432,7 +432,7 @@ package bp_common_aviary_pkg;
 
       ,branch_metadata_fwd_width: 28
       ,btb_tag_width            : 10
-      ,btb_idx_width            : 6
+      ,btb_idx_width            : 12
       ,bht_idx_width            : 9
       ,ras_idx_width            : 2
 
