@@ -15,6 +15,10 @@ module bp_core_minimal
  import bp_common_rv64_pkg::*;
  import bp_common_cfg_link_pkg::*;
   #(parameter bp_params_e bp_params_p = e_bp_single_core_cfg
+    ////
+    //, localparam lce_fe_assoc_p = 4
+    //, localparam cce_fe_block_width_p = 256
+    ////
     `declare_bp_proc_params(bp_params_p)
     `declare_bp_fe_be_if_widths(vaddr_width_p, paddr_width_p, asid_width_p, branch_metadata_fwd_width_p)
     `declare_bp_lce_cce_if_widths(cce_id_width_p, lce_id_width_p, paddr_width_p, lce_assoc_p, dword_width_p, cce_block_width_p)
