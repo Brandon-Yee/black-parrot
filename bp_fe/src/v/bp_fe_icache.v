@@ -27,12 +27,12 @@ module bp_fe_icache
     ,localparam fe_lce_sets_p             = 128     // 128
     ,localparam fe_cce_block_width_p      = 256     // 256
     ,localparam fe_index_width_lp         = `BSG_SAFE_CLOG2(fe_lce_sets_p)
-    ,localparam fe_way_id_width_lp        = `BSG_SAFE_CLOG2(fe_lce_assoc_p
+    ,localparam fe_way_id_width_lp        = `BSG_SAFE_CLOG2(fe_lce_assoc_p)
     //,localparam fe_cache_req_metadata_width_lp = 4
     ////
     
     `declare_bp_proc_params(bp_params_p)
-    `declare_bp_cache_service_if_widths(paddr_width_p, ptag_width_p, fe_lce_sets_p, fe_lce_assoc_p, dword_width_p, fe_cce_block_width_p) //  //  //
+    `declare_bp_cache_service_if_widths(paddr_width_p, ptag_width_p, lce_sets_p, lce_assoc_p, dword_width_p, cce_block_width_p) //This only changes the port widths
 
     , localparam way_id_width_lp=`BSG_SAFE_CLOG2(lce_assoc_p)
     , localparam block_size_in_words_lp=8
@@ -85,7 +85,7 @@ module bp_fe_icache
     , input data_mem_pkt_v_i
     , input [cache_data_mem_pkt_width_lp-1:0] data_mem_pkt_i
     , output logic data_mem_pkt_ready_o
-    , output logic [cce_block_width_p-1:0] data_mem_o //
+    , output logic [cce_block_width_p-1:0] data_mem_o
 
     // tag_mem
     , input tag_mem_pkt_v_i
@@ -108,7 +108,7 @@ module bp_fe_icache
   bp_cache_req_s cache_req_cast_lo;
   bp_cache_req_metadata_s cache_req_metadata_cast_lo;
   assign cache_req_o = cache_req_cast_lo;
-  assign cache_req_metadata_o = cache_req_metadata_cast_lo;
+  assign cache_req_metadata_o = {1'b0, cache_req_metadata_cast_lo};
   
   logic [fe_index_width_lp-1:0]           vaddr_index; //
 
@@ -146,7 +146,7 @@ module bp_fe_icache
   // tag memory
   logic                                     tag_mem_v_li;
   logic                                     tag_mem_w_li;
-  logic [index_width_lp-1:0]                tag_mem_addr_li;
+  logic [fe_index_width_lp-1:0]             tag_mem_addr_li;
   logic [fe_lce_assoc_p-1:0][`bp_coh_bits+fe_tag_width_lp-1:0] tag_mem_data_li;   //
   logic [fe_lce_assoc_p-1:0][`bp_coh_bits+fe_tag_width_lp-1:0] tag_mem_w_mask_li; //
   logic [fe_lce_assoc_p-1:0][`bp_coh_bits+fe_tag_width_lp-1:0] tag_mem_data_lo;   //
@@ -168,7 +168,7 @@ module bp_fe_icache
   logic [fe_lce_assoc_p-1:0][`bp_coh_bits-1:0] state_tl; //
   logic [fe_lce_assoc_p-1:0][fe_tag_width_lp-1:0] tag_tl;   //  //
 
-  for (genvar i = 0; i < lce_fe_assoc_p; i++) begin   //
+  for (genvar i = 0; i < fe_lce_assoc_p; i++) begin   //
     assign state_tl[i] = tag_mem_data_lo[i][fe_tag_width_lp+:`bp_coh_bits]; //
     assign tag_tl[i]   = tag_mem_data_lo[i][0+:fe_tag_width_lp];  //
   end
@@ -176,7 +176,8 @@ module bp_fe_icache
   // data memory
   logic [fe_lce_assoc_p-1:0]                                              data_mem_v_li;      //
   logic                                                                   data_mem_w_li;
-  logic [fe_lce_assoc_p-1:0][fe_index_width_lp+word_offset_width_lp-1:0]  data_mem_addr_li;   //
+  //logic [fe_lce_assoc_p-1:0][fe_index_width_lp+word_offset_width_lp-1:0]  data_mem_addr_li;   //
+  logic [fe_lce_assoc_p-1:0][`BSG_SAFE_CLOG2(fe_lce_sets_p*fe_lce_assoc_p)-1:0]          data_mem_addr_li;
   logic [fe_lce_assoc_p-1:0][dword_width_p-1:0]                           data_mem_data_li;   //
   logic [fe_lce_assoc_p-1:0][data_mask_width_lp-1:0]                      data_mem_w_mask_li; //
   logic [fe_lce_assoc_p-1:0][dword_width_p-1:0]                           data_mem_data_lo;   //
@@ -246,7 +247,7 @@ module bp_fe_icache
   end
 
   bsg_priority_encode #(
-    .width_p(fe_lce_assoc_p) //
+    .width_p(fe_lce_assoc_p) // might need to change back to be 
     ,.lo_to_hi_p(1)
   ) pe_load_hit (
     .i(hit_v)
@@ -254,6 +255,11 @@ module bp_fe_icache
     ,.addr_o(hit_index)
   );
 
+  ////
+  //logic [way_id_width_lp-1:0] hit_index;
+  //assign hit_index = {1'b0, fe_hit_index}; // change to be not hard-coded
+  ////
+  
   logic miss_tv;
   assign miss_tv = ~hit & v_tv_r & ~uncached_tv_r;
 
@@ -375,10 +381,10 @@ module bp_fe_icache
 
   bsg_mux #(
     .width_p(dword_width_p)
-    ,.els_p(fe_lce_assoc_p)  //
+    ,.els_p(fe_lce_assoc_p)  // reduce the size by truncating
   ) data_set_select_mux (
     .data_i(ld_data_tv_r)
-    ,.sel_i(hit_index ^ addr_word_offset_tv)
+    ,.sel_i(hit_index[1:0] ^ addr_word_offset_tv[1:0])
     ,.data_o(ld_data_way_picked)
   );
 
@@ -513,13 +519,18 @@ module bp_fe_icache
     end
   end
 
+  ////
+  logic [fe_cce_block_width_p-1:0] fe_data_mem_o;
+  assign data_mem_o = {256'b0, fe_data_mem_o};
+  ////
+
   bsg_mux_butterfly #(
     .width_p(64) // Set to be the datawidth, might change to be a parameter
     ,.els_p(fe_lce_assoc_p) //
   ) read_mux_butterfly (
     .data_i(data_mem_data_lo)
     ,.sel_i(data_mem_pkt_way_r)
-    ,.data_o(data_mem_o)
+    ,.data_o(fe_data_mem_o) //
   );
 
   assign data_mem_pkt_ready_o = ~tl_we;
