@@ -80,7 +80,7 @@ module bp_be_dcache
   import bp_common_aviary_pkg::*;
  #(parameter bp_params_e bp_params_p = e_bp_inv_cfg
    `declare_bp_proc_params(bp_params_p)
-   `declare_bp_cache_service_if_widths(paddr_width_p, ptag_width_p, lce_sets_p, lce_assoc_p, dword_width_p, cce_block_width_p)
+   `declare_bp_cache_service_if_widths(paddr_width_p, ptag_width_p, lce_sets_p, icache_lce_sets_p, lce_assoc_p, icache_lce_assoc_p, dword_width_p, cce_block_width_p, icache_cce_block_width_p)
    
     , parameter writethrough_p=0
     , parameter debug_p=0 
@@ -161,7 +161,7 @@ module bp_be_dcache
   bp_cfg_bus_s cfg_bus_cast_i;
   assign cfg_bus_cast_i = cfg_bus_i;
 
-  `declare_bp_cache_service_if(paddr_width_p, ptag_width_p, lce_sets_p, lce_assoc_p, dword_width_p, cce_block_width_p);
+  `declare_bp_cache_service_if(paddr_width_p, ptag_width_p, lce_sets_p, icache_lce_sets_p, lce_assoc_p, icache_lce_assoc_p, dword_width_p, cce_block_width_p, icache_cce_block_width_p);
   bp_cache_req_s cache_req_cast_o;
   bp_cache_req_metadata_s cache_req_metadata_cast_o;
   assign cache_req_o = cache_req_cast_o;
