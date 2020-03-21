@@ -15,10 +15,14 @@ module bp_core_minimal
  import bp_common_rv64_pkg::*;
  import bp_common_cfg_link_pkg::*;
   #(parameter bp_params_e bp_params_p = e_bp_single_core_cfg
+    ////
+    //, localparam lce_fe_assoc_p = 4
+    //, localparam cce_fe_block_width_p = 256
+    ////
     `declare_bp_proc_params(bp_params_p)
     `declare_bp_fe_be_if_widths(vaddr_width_p, paddr_width_p, asid_width_p, branch_metadata_fwd_width_p)
     `declare_bp_lce_cce_if_widths(cce_id_width_p, lce_id_width_p, paddr_width_p, lce_assoc_p, dword_width_p, cce_block_width_p)
-    `declare_bp_cache_service_if_widths(paddr_width_p, ptag_width_p, lce_sets_p, lce_assoc_p, dword_width_p, cce_block_width_p)
+    `declare_bp_cache_service_if_widths(paddr_width_p, ptag_width_p, lce_sets_p, icache_lce_sets_p, lce_assoc_p, icache_lce_assoc_p, dword_width_p, cce_block_width_p, icache_cce_block_width_p) // i
 
     , localparam cfg_bus_width_lp = `bp_cfg_bus_width(vaddr_width_p, core_id_width_p, cce_id_width_p, lce_id_width_p, cce_pc_width_p, cce_instr_width_p)
 
@@ -42,23 +46,28 @@ module bp_core_minimal
     , output logic [1:0][cache_req_width_lp-1:0] cache_req_o
     , output logic [1:0] cache_req_v_o
     , input [1:0] cache_req_ready_i
-    , output logic [1:0][cache_req_metadata_width_lp-1:0] cache_req_metadata_o
+    , output logic [cache_req_metadata_width_lp-1:0] cache_req_metadata_o         //
+    , output logic [icache_req_metadata_width_lp-1:0] icache_cache_req_metadata_o // i
     , output logic [1:0] cache_req_metadata_v_o
 
     , input [1:0] cache_req_complete_i
 
     // response side - Interface from LCE
-    , input [1:0][cache_data_mem_pkt_width_lp-1:0] data_mem_pkt_i
+    , input [cache_data_mem_pkt_width_lp-1:0] data_mem_pkt_i          //
+    , input [icache_data_mem_pkt_width_lp-1:0] icache_data_mem_pkt_i  // i
     , input [1:0] data_mem_pkt_v_i
     , output logic [1:0] data_mem_pkt_ready_o
-    , output logic [1:0][cce_block_width_p-1:0] data_mem_o 
+    , output logic [cce_block_width_p-1:0] data_mem_o                 //
+    , output logic [icache_cce_block_width_p-1:0] icache_data_mem_o   // i
 
-    , input [1:0][cache_tag_mem_pkt_width_lp-1:0] tag_mem_pkt_i
+    , input [cache_tag_mem_pkt_width_lp-1:0] tag_mem_pkt_i                //
+    , input [icache_cache_tag_mem_pkt_width_lp-1:0] icache_tag_mem_pkt_i  // i
     , input [1:0] tag_mem_pkt_v_i
     , output logic [1:0] tag_mem_pkt_ready_o
     , output logic [1:0][ptag_width_p-1:0] tag_mem_o
 
-    , input [1:0][cache_stat_mem_pkt_width_lp-1:0] stat_mem_pkt_i
+    , input [cache_stat_mem_pkt_width_lp-1:0] stat_mem_pkt_i                //
+    , input [icache_cache_stat_mem_pkt_width_lp-1:0] icache_stat_mem_pkt_i  // i
     , input [1:0] stat_mem_pkt_v_i
     , output logic [1:0] stat_mem_pkt_ready_o
     , output logic [1:0][stat_info_width_lp-1:0] stat_mem_o
@@ -72,10 +81,23 @@ module bp_core_minimal
   `declare_bp_cache_data_mem_pkt_s(lce_sets_p, lce_assoc_p, cce_block_width_p);
   `declare_bp_cache_tag_mem_pkt_s(lce_sets_p, lce_assoc_p, ptag_width_p);
   `declare_bp_cache_stat_mem_pkt_s(lce_sets_p, lce_assoc_p);
-
+  
+  //// i-cache
+  `declare_bp_icache_cache_data_mem_pkt_s(icache_lce_sets_p, icache_lce_assoc_p, icache_cce_block_width_p);
+  `declare_bp_icache_cache_tag_mem_pkt_s(icache_lce_sets_p, icache_lce_assoc_p, ptag_width_p);
+  `declare_bp_icache_cache_stat_mem_pkt_s(icache_lce_sets_p, icache_lce_assoc_p);
+  ////
+  
   bp_cache_data_mem_pkt_s data_mem_pkt;
   bp_cache_tag_mem_pkt_s tag_mem_pkt;
   bp_cache_stat_mem_pkt_s stat_mem_pkt;
+  
+  //// i-cache
+  bp_icache_cache_data_mem_pkt_s icache_data_mem_pkt;
+  bp_icache_cache_tag_mem_pkt_s icache_tag_mem_pkt;
+  bp_icache_cache_stat_mem_pkt_s icache_stat_mem_pkt;
+  ////
+  
 
   // TODO: fix interfaces for fe/be
   `declare_bp_fe_be_if(vaddr_width_p, paddr_width_p, asid_width_p, branch_metadata_fwd_width_p);
@@ -88,8 +110,10 @@ module bp_core_minimal
   logic fe_cmd_v_li, fe_cmd_ready_lo;
   logic fe_cmd_v_lo, fe_cmd_yumi_li;
 
+  bp_params_e bp_icache_params_p = 10; // i-cache parameters
+  
   bp_fe_top
-   #(.bp_params_p(bp_params_p))
+   #(.bp_params_p(bp_icache_params_p))
    fe
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
@@ -107,22 +131,22 @@ module bp_core_minimal
      ,.cache_req_o(cache_req_o[0])
      ,.cache_req_v_o(cache_req_v_o[0])
      ,.cache_req_ready_i(cache_req_ready_i[0])
-     ,.cache_req_metadata_o(cache_req_metadata_o[0])
+     ,.cache_req_metadata_o(icache_cache_req_metadata_o) // i
      ,.cache_req_metadata_v_o(cache_req_metadata_v_o[0])
      ,.cache_req_complete_i(cache_req_complete_i[0])
 
-     ,.data_mem_pkt_i(data_mem_pkt_i[0])
+     ,.data_mem_pkt_i(icache_data_mem_pkt_i) // i
      ,.data_mem_pkt_v_i(data_mem_pkt_v_i[0])
      ,.data_mem_pkt_ready_o(data_mem_pkt_ready_o[0])
-     ,.data_mem_o(data_mem_o[0])
+     ,.data_mem_o(icache_data_mem_o) // i
 
-     ,.tag_mem_pkt_i(tag_mem_pkt_i[0])
+     ,.tag_mem_pkt_i(icache_tag_mem_pkt_i) // i
      ,.tag_mem_pkt_v_i(tag_mem_pkt_v_i[0])
      ,.tag_mem_pkt_ready_o(tag_mem_pkt_ready_o[0])
      ,.tag_mem_o(tag_mem_o[0])
 
      ,.stat_mem_pkt_v_i(stat_mem_pkt_v_i[0])
-     ,.stat_mem_pkt_i(stat_mem_pkt_i[0])
+     ,.stat_mem_pkt_i(icache_stat_mem_pkt_i) // i
      ,.stat_mem_pkt_ready_o(stat_mem_pkt_ready_o[0])
      ,.stat_mem_o(stat_mem_o[0])
      );
@@ -200,22 +224,22 @@ module bp_core_minimal
      ,.cache_req_o(cache_req_o[1])
      ,.cache_req_v_o(cache_req_v_o[1])
      ,.cache_req_ready_i(cache_req_ready_i[1])
-     ,.cache_req_metadata_o(cache_req_metadata_o[1])
+     ,.cache_req_metadata_o(cache_req_metadata_o) //
      ,.cache_req_metadata_v_o(cache_req_metadata_v_o[1])
 
      ,.cache_req_complete_i(cache_req_complete_i[1])
 
-     ,.data_mem_pkt_i(data_mem_pkt_i[1])
+     ,.data_mem_pkt_i(data_mem_pkt_i) //
      ,.data_mem_pkt_v_i(data_mem_pkt_v_i[1])
      ,.data_mem_pkt_ready_o(data_mem_pkt_ready_o[1])
-     ,.data_mem_o(data_mem_o[1])
+     ,.data_mem_o(data_mem_o) //
 
-     ,.tag_mem_pkt_i(tag_mem_pkt_i[1])
+     ,.tag_mem_pkt_i(tag_mem_pkt_i) //
      ,.tag_mem_pkt_v_i(tag_mem_pkt_v_i[1])
      ,.tag_mem_pkt_ready_o(tag_mem_pkt_ready_o[1])
      ,.tag_mem_o(tag_mem_o[1])
 
-     ,.stat_mem_pkt_v_i(stat_mem_pkt_v_i[1])
+     ,.stat_mem_pkt_v_i(stat_mem_pkt_v_i) //
      ,.stat_mem_pkt_i(stat_mem_pkt_i[1])
      ,.stat_mem_pkt_ready_o(stat_mem_pkt_ready_o[1])
      ,.stat_mem_o(stat_mem_o[1])

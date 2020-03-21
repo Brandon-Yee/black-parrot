@@ -59,6 +59,16 @@ typedef struct packed                              \
 `define bp_cache_req_metadata_width(ways_mp) \
   (`BSG_SAFE_CLOG2(ways_mp)+1)
 
+`define declare_bp_icache_cache_req_metadata_s(icache_ways_mp)  \
+typedef struct packed                                           \
+{                                                               \ 
+  logic [`BSG_SAFE_CLOG2(icache_ways_mp)-1:0] repl_way;         \
+  logic dirty;                                                  \
+}  bp_icache_cache_req_metadata_s
+
+`define bp_icache_cache_req_metadata_width(icache_ways_mp) \
+  (`BSG_SAFE_CLOG2(icache_ways_mp)+1)
+
 // Fill IF
 // Data mem pkt opcodes
 typedef enum logic [1:0] {
@@ -111,6 +121,22 @@ typedef enum logic [1:0] {
 `define bp_cache_data_mem_pkt_width(sets_mp, ways_mp, data_width_mp) \
   (`BSG_SAFE_CLOG2(sets_mp)+`BSG_SAFE_CLOG2(ways_mp)+data_width_mp \
    +`bp_cache_data_mem_opcode_width)
+   
+//// i-cache
+`define declare_bp_icache_cache_data_mem_pkt_s(icache_sets_mp, icache_ways_mp, data_width_mp) \
+  typedef struct packed                                                                       \
+  {                                                                                           \
+    logic [`BSG_SAFE_CLOG2(icache_sets_mp)-1:0]      index;                                   \
+    logic [`BSG_SAFE_CLOG2(icache_ways_mp)-1:0]      way_id;                                  \
+    logic [data_width_mp-1:0]                        data;                                    \
+    bp_cache_data_mem_opcode_e                       opcode;                                  \
+  }  bp_icache_cache_data_mem_pkt_s
+
+`define bp_icache_cache_data_mem_pkt_width(icache_sets_mp, icache_ways_mp, data_width_mp) \
+  (`BSG_SAFE_CLOG2(icache_sets_mp)+`BSG_SAFE_CLOG2(icache_ways_mp)+data_width_mp \
+   +`bp_cache_data_mem_opcode_width)
+////   
+   
 
 // tag mem pkt structure
 `define declare_bp_cache_tag_mem_pkt_s(sets_mp, ways_mp, tag_width_mp)           \
@@ -125,6 +151,21 @@ typedef enum logic [1:0] {
 `define bp_cache_tag_mem_pkt_width(sets_mp, ways_mp, tag_width_mp) \
   (`BSG_SAFE_CLOG2(sets_mp)+`BSG_SAFE_CLOG2(ways_mp)+`bp_coh_bits+tag_width_mp+`bp_cache_tag_mem_opcode_width)
 
+//// i-cache
+`define declare_bp_icache_cache_tag_mem_pkt_s(sets_mp, ways_mp, tag_width_mp)    \
+  typedef struct packed {                                                        \
+    logic [`BSG_SAFE_CLOG2(sets_mp)-1:0]        index;                           \
+    logic [`BSG_SAFE_CLOG2(ways_mp)-1:0]        way_id;                          \
+    logic [`bp_coh_bits-1:0]                    state;                           \
+    logic [tag_width_mp-1:0]                    tag;                             \
+    bp_cache_tag_mem_opcode_e                   opcode;                          \
+  }  bp_icache_cache_tag_mem_pkt_s
+
+`define bp_icache_cache_tag_mem_pkt_width(sets_mp, ways_mp, tag_width_mp) \
+  (`BSG_SAFE_CLOG2(sets_mp)+`BSG_SAFE_CLOG2(ways_mp)+`bp_coh_bits+tag_width_mp+`bp_cache_tag_mem_opcode_width)
+////
+
+// stat mem pkt structure
 `define declare_bp_cache_stat_mem_pkt_s(sets_mp, ways_mp)                 \
   typedef struct packed {                                                 \
     logic [`BSG_SAFE_CLOG2(sets_mp)-1:0]    index;                        \
@@ -135,18 +176,41 @@ typedef enum logic [1:0] {
 `define bp_cache_stat_mem_pkt_width(sets_mp, ways_mp) \
   (`BSG_SAFE_CLOG2(sets_mp)+`BSG_SAFE_CLOG2(ways_mp)+`bp_cache_stat_mem_opcode_width)
 
-`define declare_bp_cache_service_if(addr_width_mp, tag_width_mp, sets_mp, ways_mp, req_data_width_mp, block_data_width_mp) \
+//// i-cache
+`define declare_bp_icache_cache_stat_mem_pkt_s(sets_mp, ways_mp)          \
+  typedef struct packed {                                                 \
+    logic [`BSG_SAFE_CLOG2(sets_mp)-1:0]    index;                        \
+    logic [`BSG_SAFE_CLOG2(ways_mp)-1:0]    way_id;                       \
+    bp_cache_stat_mem_opcode_e              opcode;                       \
+  } bp_icache_cache_stat_mem_pkt_s
+
+`define bp_icache_cache_stat_mem_pkt_width(sets_mp, ways_mp) \
+  (`BSG_SAFE_CLOG2(sets_mp)+`BSG_SAFE_CLOG2(ways_mp)+`bp_cache_stat_mem_opcode_width)
+////
+
+`define declare_bp_cache_service_if(addr_width_mp, tag_width_mp, sets_mp, icache_sets_mp, ways_mp, icache_ways_mp, req_data_width_mp, block_data_width_mp, icache_block_data_width_mp) \
   `declare_bp_cache_req_s(req_data_width_mp, addr_width_mp);               \
   `declare_bp_cache_req_metadata_s(ways_mp);                               \
   `declare_bp_cache_data_mem_pkt_s(sets_mp, ways_mp, block_data_width_mp); \
   `declare_bp_cache_tag_mem_pkt_s(sets_mp, ways_mp, tag_width_mp);         \
-  `declare_bp_cache_stat_mem_pkt_s(sets_mp, ways_mp)
+  `declare_bp_cache_stat_mem_pkt_s(sets_mp, ways_mp)                       \
+  `declare_bp_icache_cache_req_metadata_s(icache_ways_mp);                               \
+  `declare_bp_icache_cache_data_mem_pkt_s(icache_sets_mp, icache_ways_mp, icache_block_data_width_mp); \
+  `declare_bp_icache_cache_tag_mem_pkt_s(icache_sets_mp, icache_ways_mp, tag_width_mp);         \
+  `declare_bp_icache_cache_stat_mem_pkt_s(icache_sets_mp, icache_ways_mp)                       
 
-`define declare_bp_cache_service_if_widths(addr_width_mp, tag_width_mp, sets_mp, ways_mp, req_data_width_mp, block_data_width_mp) \
+
+`define declare_bp_cache_service_if_widths(addr_width_mp, tag_width_mp, sets_mp, icache_sets_mp, ways_mp, icache_ways_mp, req_data_width_mp, block_data_width_mp, icache_block_data_width_mp) \
   , localparam cache_req_width_lp = `bp_cache_req_width(req_data_width_mp, addr_width_mp)                    \
   , localparam cache_req_metadata_width_lp = `bp_cache_req_metadata_width(ways_mp)                           \
   , localparam cache_data_mem_pkt_width_lp=`bp_cache_data_mem_pkt_width(sets_mp,ways_mp,block_data_width_mp) \
   , localparam cache_tag_mem_pkt_width_lp=`bp_cache_tag_mem_pkt_width(sets_mp,ways_mp,tag_width_mp)          \
-  , localparam cache_stat_mem_pkt_width_lp=`bp_cache_stat_mem_pkt_width(sets_mp,ways_mp)
+  , localparam cache_stat_mem_pkt_width_lp=`bp_cache_stat_mem_pkt_width(sets_mp,ways_mp)\
+  , localparam icache_cache_req_metadata_width_lp = `bp_icache_cache_req_metadata_width(icache_ways_mp)                           \
+  , localparam icache_cache_data_mem_pkt_width_lp=`bp_icache_cache_data_mem_pkt_width(icache_sets_mp,icache_ways_mp,icache_block_data_width_mp) \
+  , localparam icache_cache_tag_mem_pkt_width_lp=`bp_icache_cache_tag_mem_pkt_width(icache_sets_mp,icache_ways_mp,tag_width_mp)          \
+  , localparam icache_cache_stat_mem_pkt_width_lp=`bp_icache_cache_stat_mem_pkt_width(icache_sets_mp,icache_ways_mp) 
+
+
 
 `endif

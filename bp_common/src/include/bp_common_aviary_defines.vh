@@ -113,6 +113,13 @@ typedef struct packed
   integer itlb_els;
   integer dtlb_els;
 
+  //// i-cache parameters
+  integer icache_lce_sets;
+  integer icache_lce_assoc;
+  integer icache_cce_block_width;
+  integer icache_cce_pc_width;
+  ////
+  
   integer lce_sets;
   integer lce_assoc;
   integer cce_block_width;
@@ -201,6 +208,11 @@ typedef struct packed
                                                                                                    \
   , localparam itlb_els_p              = proc_param_lp.itlb_els                                    \
   , localparam dtlb_els_p              = proc_param_lp.dtlb_els                                    \
+                                                                                                   \
+  , localparam icache_lce_sets_p          = proc_param_lp.icache_lce_sets                          \
+  , localparam icache_lce_assoc_p         = proc_param_lp.icache_lce_assoc                         \
+  , localparam icache_cce_block_width_p   = proc_param_lp.icache_cce_block_width                   \
+  , localparam icache_cce_pc_width_p      = proc_param_lp.icache_cce_pc_width                      \
                                                                                                    \
   , localparam lce_sets_p                 = proc_param_lp.lce_sets                                 \
   , localparam lce_assoc_p                = proc_param_lp.lce_assoc                                \
