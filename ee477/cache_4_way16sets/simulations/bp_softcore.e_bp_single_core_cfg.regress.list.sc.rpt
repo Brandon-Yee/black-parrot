@@ -1,0 +1,39 @@
+dijkstra
+==========
+[CORE0 FSH] PASS
+[CORE0 STATS]
+	clk   :              4153201
+	instr :              3122188
+	fe_nop:                    0
+	be_nop:                    0
+	me_nop:                    0
+	poison:               849612
+	roll  :                  966
+	mIPC  :                  751
+
+frac
+==========
+[CORE0 FSH] PASS
+[CORE0 STATS]
+	clk   :              1132798
+	instr :               752298
+	fe_nop:                    0
+	be_nop:                    0
+	me_nop:                    0
+	poison:               349611
+	roll  :                   75
+	mIPC  :                  664
+
+sglib-arraybinsearch
+==========
+[CORE0 FSH] PASS
+[CORE0 STATS]
+	clk   :                82497
+	instr :                45688
+	fe_nop:                    0
+	be_nop:                    0
+	me_nop:                    0
+	poison:                30302
+	roll  :                   57
+	mIPC  :                  553
+
