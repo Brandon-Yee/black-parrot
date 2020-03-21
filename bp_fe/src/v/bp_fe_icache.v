@@ -44,7 +44,7 @@ module bp_fe_icache
 
     , input [cfg_bus_width_lp-1:0]                     cfg_bus_i
 
-    , input [vaddr_width_p-1:0]                        vaddr_i
+    , input [vaddr_width_p-3:0]                        vaddr_i
     , input                                            vaddr_v_i
     , output                                           vaddr_ready_o
 
@@ -77,7 +77,7 @@ module bp_fe_icache
     , input tag_mem_pkt_v_i
     , input [cache_tag_mem_pkt_width_lp-1:0] tag_mem_pkt_i
     , output logic tag_mem_pkt_ready_o
-    , output logic [tag_width_lp-1:0] tag_mem_o
+    , output logic [tag_width_lp-3:0] tag_mem_o
 
     // stat_mem
     , input stat_mem_pkt_v_i
@@ -541,7 +541,7 @@ module bp_fe_icache
     end
   end
 
-  assign tag_mem_o = tag_mem_data_lo[tag_mem_pkt_way_r][0+:tag_width_lp];
+  assign tag_mem_o = tag_mem_data_lo[tag_mem_pkt_way_r][0+:tag_width_lp-3];
   assign tag_mem_pkt_ready_o = ~tl_we;
 
   // LCE: stat_mem

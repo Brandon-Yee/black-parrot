@@ -19,7 +19,7 @@ typedef enum bit [1:0]
                                                                \
   typedef struct packed                                        \
   {                                                            \
-    logic [`bp_fe_fetch_operands_padding_width(vaddr_width_mp, vtag_width_mp, ptag_width_mp)-1:0] \
+    logic [`bp_fe_fetch_operands_padding_width(vaddr_width_mp, vtag_width_mp, ptag_width_mp)+1:0] \
                   padding;                                     \
     bp_fe_vaddr_s vaddr;                                       \
   }  bp_fe_fetch_operands_s;                                   \
